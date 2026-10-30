@@ -11,8 +11,9 @@ export class PlantaController {
       const { nome, especie, preco, estoque, luminosidade, petFriendly, regaACadaDias } = req.body;
 
       if (
-        !nome || !especie || preco === undefined || estoque === undefined ||
-        !luminosidade || petFriendly === undefined || regaACadaDias === undefined
+        nome === undefined || especie === undefined || preco === undefined || 
+        estoque === undefined || luminosidade === undefined || 
+        petFriendly === undefined || regaACadaDias === undefined
       ) {
         return res.status(400).json({ error: "Todos os campos são obrigatórios." });
       }
