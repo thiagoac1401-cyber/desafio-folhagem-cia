@@ -168,9 +168,14 @@ export class PlantaController {
         return res.status(400).json({ error: "regaACadaDias inválido." });
       }
 
+      const camposEnviados = [nome, especie, preco, estoque, luminosidade, petFriendly, regaACadaDias];
+      if (camposEnviados.every((campo) => campo === undefined)) {
+        return res.status(400).json({ error: "Envie ao menos um campo da planta para editar." });
+      }
+
       const plantaAtualizada = await plantaRepository.update(id, {
-        ...(nome && { nome: nome.trim() }),
-        ...(especie && { especie: especie.trim() }),
+        nome: nome?.trim(),
+        especie: especie?.trim(),
         preco,
         estoque,
         luminosidade,
