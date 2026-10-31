@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
-import { PlantaRepository } from "../repositories/PlantaRepository";
+import * as PlantaRepository from "@repositories/PlantaRepository";
 import { Luminosidade } from "@prisma/client";
-
-const plantaRepository = new PlantaRepository();
 
 // Maior valor que cabe numa coluna Int do PostgreSQL. Acima disso o banco recusa o valor.
 const INT_MAX = 2147483647;
@@ -22,257 +20,260 @@ const lerId = (texto: string) => {
   return ehInteiro(id, 1) ? id : null;
 };
 
-export class PlantaController {
-  // 1. Cadastrar Planta (POST /plantas)
-  async create(req: Request, res: Response) {
-    try {
-      const { nome, especie, preco, estoque, luminosidade, petFriendly, regaACadaDias } = req.body;
+// 1. Cadastrar Planta (POST /plantas)
+export const createPlanta = async (req: Request, res: Response) => {
+  try {
+    const { nome, especie, preco, estoque, luminosidade, petFriendly, regaACadaDias } = req.body;
 
-      if (
-        nome === undefined || especie === undefined || preco === undefined || 
-        estoque === undefined || luminosidade === undefined || 
-        petFriendly === undefined || regaACadaDias === undefined
-      ) {
-        return res.status(400).json({ message: "Todos os campos são obrigatórios." });
-      }
-
-      if (
-        typeof nome !== "string" || nome.trim() === "" ||
-        typeof especie !== "string" || especie.trim() === "" ||
-        !ehInteiro(preco, 1) ||
-        !ehInteiro(estoque, 0) ||
-        !Object.values(Luminosidade).includes(luminosidade) ||
-        typeof petFriendly !== "boolean" ||
-        !ehInteiro(regaACadaDias, 1)
-      ) {
-        return res.status(400).json({ message: "Dados inválidos informados." });
-      }
-
-      const planta = await plantaRepository.create({
-        nome: nome.trim(),
-        especie: especie.trim(),
-        preco,
-        estoque,
-        luminosidade,
-        petFriendly,
-        regaACadaDias,
-      });
-
-      return res.status(201).json(planta);
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Erro interno no servidor." });
+    if (
+      nome === undefined ||
+      especie === undefined ||
+      preco === undefined ||
+      estoque === undefined ||
+      luminosidade === undefined ||
+      petFriendly === undefined ||
+      regaACadaDias === undefined
+    ) {
+      return res.status(400).json({ message: "Todos os campos são obrigatórios." });
     }
-  }
 
-  // 2. Listar Plantas com Filtros Opcionais e Busca (GET /plantas)
-  async findAll(req: Request, res: Response) {
-    try {
-      const { luminosidade, petFriendly, nome, ordem } = req.query;
-      const filters: { luminosidade?: Luminosidade; petFriendly?: boolean; nome?: string } = {};
-
-      if (luminosidade !== undefined) {
-        if (!Object.values(Luminosidade).includes(luminosidade as Luminosidade)) {
-          return res.status(400).json({ message: "Filtro de luminosidade inválido." });
-        }
-        filters.luminosidade = luminosidade as Luminosidade;
-      }
-
-      if (petFriendly !== undefined) {
-        if (petFriendly !== "true" && petFriendly !== "false") {
-          return res.status(400).json({ message: "Filtro petFriendly inválido." });
-        }
-        filters.petFriendly = petFriendly === "true";
-      }
-
-      if (nome !== undefined) {
-        if (typeof nome !== "string" || nome.trim() === "") {
-          return res.status(400).json({ message: "Filtro nome inválido." });
-        }
-        filters.nome = nome.trim();
-      }
-
-      if (ordem !== undefined && ordem !== "preco" && ordem !== "nome") {
-        return res.status(400).json({ message: "Filtro ordem inválido. Use preco ou nome." });
-      }
-
-      const plantas = await plantaRepository.findAll(filters, ordem);
-      return res.status(200).json(plantas);
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Erro interno no servidor." });
+    if (
+      typeof nome !== "string" ||
+      nome.trim() === "" ||
+      typeof especie !== "string" ||
+      especie.trim() === "" ||
+      !ehInteiro(preco, 1) ||
+      !ehInteiro(estoque, 0) ||
+      !Object.values(Luminosidade).includes(luminosidade) ||
+      typeof petFriendly !== "boolean" ||
+      !ehInteiro(regaACadaDias, 1)
+    ) {
+      return res.status(400).json({ message: "Dados inválidos informados." });
     }
-  }
 
-  // 2.1 Buscar Plantas Esgotadas (GET /plantas/esgotadas) - BÔNUS
-  async findEsgotadas(req: Request, res: Response) {
-    try {
-      const plantas = await plantaRepository.findEsgotadas();
-      return res.status(200).json(plantas);
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Erro ao buscar plantas esgotadas" });
+    const planta = await PlantaRepository.createPlanta({
+      nome: nome.trim(),
+      especie: especie.trim(),
+      preco,
+      estoque,
+      luminosidade,
+      petFriendly,
+      regaACadaDias,
+    });
+
+    return res.status(201).json(planta);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erro interno no servidor." });
+  }
+};
+
+// 2. Listar Plantas com Filtros Opcionais e Busca (GET /plantas)
+export const readAllPlantas = async (req: Request, res: Response) => {
+  try {
+    const { luminosidade, petFriendly, nome, ordem } = req.query;
+    const filters: { luminosidade?: Luminosidade; petFriendly?: boolean; nome?: string } = {};
+
+    if (luminosidade !== undefined) {
+      if (!Object.values(Luminosidade).includes(luminosidade as Luminosidade)) {
+        return res.status(400).json({ message: "Filtro de luminosidade inválido." });
+      }
+      filters.luminosidade = luminosidade as Luminosidade;
     }
-  }
 
-  // 3. Buscar Planta por ID (GET /plantas/:id)
-  async findById(req: Request, res: Response) {
-    try {
-      const id = lerId(req.params.id);
-      if (id === null) {
-        return res.status(400).json({ message: "ID inválido." });
+    if (petFriendly !== undefined) {
+      if (petFriendly !== "true" && petFriendly !== "false") {
+        return res.status(400).json({ message: "Filtro petFriendly inválido." });
       }
-
-      const planta = await plantaRepository.findById(id);
-      if (!planta) {
-        return res.status(404).json({ message: "Planta não encontrada." });
-      }
-
-      return res.status(200).json(planta);
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Erro interno no servidor." });
+      filters.petFriendly = petFriendly === "true";
     }
-  }
 
-  // 4. Editar Planta (PATCH /plantas/:id)
-  async update(req: Request, res: Response) {
-    try {
-      const id = lerId(req.params.id);
-      if (id === null) {
-        return res.status(400).json({ message: "ID inválido." });
+    if (nome !== undefined) {
+      if (typeof nome !== "string" || nome.trim() === "") {
+        return res.status(400).json({ message: "Filtro nome inválido." });
       }
-
-      const plantaExistente = await plantaRepository.findById(id);
-      if (!plantaExistente) {
-        return res.status(404).json({ message: "Planta não encontrada." });
-      }
-
-      const { nome, especie, preco, estoque, luminosidade, petFriendly, regaACadaDias } = req.body;
-
-      if (nome !== undefined && (typeof nome !== "string" || nome.trim() === "")) {
-        return res.status(400).json({ message: "Nome inválido." });
-      }
-      if (especie !== undefined && (typeof especie !== "string" || especie.trim() === "")) {
-        return res.status(400).json({ message: "Espécie inválida." });
-      }
-      if (preco !== undefined && (!ehInteiro(preco, 1))) {
-        return res.status(400).json({ message: "Preço inválido." });
-      }
-      if (estoque !== undefined && (!ehInteiro(estoque, 0))) {
-        return res.status(400).json({ message: "Estoque inválido." });
-      }
-      if (luminosidade !== undefined && !Object.values(Luminosidade).includes(luminosidade)) {
-        return res.status(400).json({ message: "Luminosidade inválida." });
-      }
-      if (petFriendly !== undefined && typeof petFriendly !== "boolean") {
-        return res.status(400).json({ message: "petFriendly inválido." });
-      }
-      if (regaACadaDias !== undefined && (!ehInteiro(regaACadaDias, 1))) {
-        return res.status(400).json({ message: "regaACadaDias inválido." });
-      }
-
-      const camposEnviados = [nome, especie, preco, estoque, luminosidade, petFriendly, regaACadaDias];
-      if (camposEnviados.every((campo) => campo === undefined)) {
-        return res.status(400).json({ message: "Envie ao menos um campo da planta para editar." });
-      }
-
-      const plantaAtualizada = await plantaRepository.update(id, {
-        nome: nome?.trim(),
-        especie: especie?.trim(),
-        preco,
-        estoque,
-        luminosidade,
-        petFriendly,
-        regaACadaDias,
-      });
-
-      return res.status(200).json(plantaAtualizada);
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Erro interno no servidor." });
+      filters.nome = nome.trim();
     }
-  }
 
-  // 5. Deletar Planta (DELETE /plantas/:id)
-  async delete(req: Request, res: Response) {
-    try {
-      const id = lerId(req.params.id);
-      if (id === null) {
-        return res.status(400).json({ message: "ID inválido." });
-      }
-
-      const planta = await plantaRepository.findById(id);
-      if (!planta) {
-        return res.status(404).json({ message: "Planta não encontrada." });
-      }
-
-      await plantaRepository.delete(id);
-      return res.status(204).send();
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Erro interno no servidor." });
+    if (ordem !== undefined && ordem !== "preco" && ordem !== "nome") {
+      return res.status(400).json({ message: "Filtro ordem inválido. Use preco ou nome." });
     }
+
+    const plantas = await PlantaRepository.findAllPlantas(filters, ordem);
+    return res.status(200).json(plantas);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erro interno no servidor." });
   }
+};
 
-  // 6. Venda de Planta (POST /plantas/:id/venda)
-  async vender(req: Request, res: Response) {
-    try {
-      const id = lerId(req.params.id);
-      const { quantidade } = req.body;
+// 2.1 Buscar Plantas Esgotadas (GET /plantas/esgotadas) - BÔNUS
+export const readPlantasEsgotadas = async (req: Request, res: Response) => {
+  try {
+    const plantas = await PlantaRepository.findPlantasEsgotadas();
+    return res.status(200).json(plantas);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erro ao buscar plantas esgotadas" });
+  }
+};
 
-      if (id === null) {
-        return res.status(400).json({ message: "ID inválido." });
-      }
-
-      if (!ehInteiro(quantidade, 1)) {
-        return res.status(400).json({ message: "Quantidade inválida para venda." });
-      }
-
-      const planta = await plantaRepository.findById(id);
-      if (!planta) {
-        return res.status(404).json({ message: "Planta não encontrada." });
-      }
-
-      if (planta.estoque < quantidade) {
-        return res.status(400).json({ message: `Estoque insuficiente. Temos só ${planta.estoque} vasos.` });
-      }
-
-      const plantaAtualizada = await plantaRepository.vender(id, quantidade);
-
-      // null: outra venda levou o estoque entre a nossa checagem e a baixa
-      if (!plantaAtualizada) {
-        return res.status(400).json({ message: "Estoque insuficiente: outra venda foi concluída antes da sua. Tente de novo." });
-      }
-
-      return res.status(200).json(plantaAtualizada);
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Erro interno no servidor." });
+// 3. Buscar Planta por ID (GET /plantas/:id)
+export const readPlantaById = async (req: Request, res: Response) => {
+  try {
+    const id = lerId(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ message: "ID inválido." });
     }
-  }
 
-  // 7. Valor Total do Estoque (GET /plantas/estoque/valor-total)
-  async valorTotalEstoque(req: Request, res: Response) {
-    try {
-      const plantas = await plantaRepository.findAllPrecoEEstoque();
-
-      const resultado = plantas.reduce(
-        (
-          acc: { valorTotalEmCentavos: number; totalDeVasos: number },
-          item: { preco: number; estoque: number }
-        ) => {
-          acc.valorTotalEmCentavos += item.preco * item.estoque;
-          acc.totalDeVasos += item.estoque;
-          return acc;
-        },
-        { valorTotalEmCentavos: 0, totalDeVasos: 0 }
-      );
-
-      return res.status(200).json(resultado);
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Erro interno no servidor." });
+    const planta = await PlantaRepository.findPlantaById(id);
+    if (!planta) {
+      return res.status(404).json({ message: "Planta não encontrada." });
     }
+
+    return res.status(200).json(planta);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erro interno no servidor." });
   }
-}
+};
+
+// 4. Editar Planta (PATCH /plantas/:id)
+export const updatePlanta = async (req: Request, res: Response) => {
+  try {
+    const id = lerId(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ message: "ID inválido." });
+    }
+
+    const plantaExistente = await PlantaRepository.findPlantaById(id);
+    if (!plantaExistente) {
+      return res.status(404).json({ message: "Planta não encontrada." });
+    }
+
+    const { nome, especie, preco, estoque, luminosidade, petFriendly, regaACadaDias } = req.body;
+
+    if (nome !== undefined && (typeof nome !== "string" || nome.trim() === "")) {
+      return res.status(400).json({ message: "Nome inválido." });
+    }
+    if (especie !== undefined && (typeof especie !== "string" || especie.trim() === "")) {
+      return res.status(400).json({ message: "Espécie inválida." });
+    }
+    if (preco !== undefined && !ehInteiro(preco, 1)) {
+      return res.status(400).json({ message: "Preço inválido." });
+    }
+    if (estoque !== undefined && !ehInteiro(estoque, 0)) {
+      return res.status(400).json({ message: "Estoque inválido." });
+    }
+    if (luminosidade !== undefined && !Object.values(Luminosidade).includes(luminosidade)) {
+      return res.status(400).json({ message: "Luminosidade inválida." });
+    }
+    if (petFriendly !== undefined && typeof petFriendly !== "boolean") {
+      return res.status(400).json({ message: "petFriendly inválido." });
+    }
+    if (regaACadaDias !== undefined && !ehInteiro(regaACadaDias, 1)) {
+      return res.status(400).json({ message: "regaACadaDias inválido." });
+    }
+
+    const camposEnviados = [nome, especie, preco, estoque, luminosidade, petFriendly, regaACadaDias];
+    if (camposEnviados.every((campo) => campo === undefined)) {
+      return res.status(400).json({ message: "Envie ao menos um campo da planta para editar." });
+    }
+
+    const plantaAtualizada = await PlantaRepository.updatePlanta(id, {
+      nome: nome?.trim(),
+      especie: especie?.trim(),
+      preco,
+      estoque,
+      luminosidade,
+      petFriendly,
+      regaACadaDias,
+    });
+
+    return res.status(200).json(plantaAtualizada);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erro interno no servidor." });
+  }
+};
+
+// 5. Deletar Planta (DELETE /plantas/:id)
+export const deletePlanta = async (req: Request, res: Response) => {
+  try {
+    const id = lerId(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ message: "ID inválido." });
+    }
+
+    const planta = await PlantaRepository.findPlantaById(id);
+    if (!planta) {
+      return res.status(404).json({ message: "Planta não encontrada." });
+    }
+
+    await PlantaRepository.deletePlanta(id);
+    return res.status(204).send();
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erro interno no servidor." });
+  }
+};
+
+// 6. Venda de Planta (POST /plantas/:id/venda)
+export const sellPlanta = async (req: Request, res: Response) => {
+  try {
+    const id = lerId(req.params.id);
+    const { quantidade } = req.body;
+
+    if (id === null) {
+      return res.status(400).json({ message: "ID inválido." });
+    }
+
+    if (!ehInteiro(quantidade, 1)) {
+      return res.status(400).json({ message: "Quantidade inválida para venda." });
+    }
+
+    const planta = await PlantaRepository.findPlantaById(id);
+    if (!planta) {
+      return res.status(404).json({ message: "Planta não encontrada." });
+    }
+
+    if (planta.estoque < quantidade) {
+      return res.status(400).json({ message: `Estoque insuficiente. Temos só ${planta.estoque} vasos.` });
+    }
+
+    const plantaAtualizada = await PlantaRepository.sellPlanta(id, quantidade);
+
+    // null: outra venda levou o estoque entre a nossa checagem e a baixa
+    if (!plantaAtualizada) {
+      return res
+        .status(400)
+        .json({ message: "Estoque insuficiente: outra venda foi concluída antes da sua. Tente de novo." });
+    }
+
+    return res.status(200).json(plantaAtualizada);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erro interno no servidor." });
+  }
+};
+
+// 7. Valor Total do Estoque (GET /plantas/estoque/valor-total)
+export const readValorTotalEstoque = async (req: Request, res: Response) => {
+  try {
+    const plantas = await PlantaRepository.findPrecoEEstoqueDasPlantas();
+
+    const resultado = plantas.reduce(
+      (acc: { valorTotalEmCentavos: number; totalDeVasos: number }, item: { preco: number; estoque: number }) => {
+        acc.valorTotalEmCentavos += item.preco * item.estoque;
+        acc.totalDeVasos += item.estoque;
+        return acc;
+      },
+      { valorTotalEmCentavos: 0, totalDeVasos: 0 },
+    );
+
+    return res.status(200).json(resultado);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erro interno no servidor." });
+  }
+};
