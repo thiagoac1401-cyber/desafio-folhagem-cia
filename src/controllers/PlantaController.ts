@@ -33,7 +33,7 @@ export class PlantaController {
         estoque === undefined || luminosidade === undefined || 
         petFriendly === undefined || regaACadaDias === undefined
       ) {
-        return res.status(400).json({ error: "Todos os campos são obrigatórios." });
+        return res.status(400).json({ message: "Todos os campos são obrigatórios." });
       }
 
       if (
@@ -45,7 +45,7 @@ export class PlantaController {
         typeof petFriendly !== "boolean" ||
         !ehInteiro(regaACadaDias, 1)
       ) {
-        return res.status(400).json({ error: "Dados inválidos informados." });
+        return res.status(400).json({ message: "Dados inválidos informados." });
       }
 
       const planta = await plantaRepository.create({
@@ -60,7 +60,8 @@ export class PlantaController {
 
       return res.status(201).json(planta);
     } catch (error) {
-      return res.status(500).json({ error: "Erro interno no servidor." });
+      console.error(error);
+      return res.status(500).json({ message: "Erro interno no servidor." });
     }
   }
 
@@ -72,33 +73,34 @@ export class PlantaController {
 
       if (luminosidade !== undefined) {
         if (!Object.values(Luminosidade).includes(luminosidade as Luminosidade)) {
-          return res.status(400).json({ error: "Filtro de luminosidade inválido." });
+          return res.status(400).json({ message: "Filtro de luminosidade inválido." });
         }
         filters.luminosidade = luminosidade as Luminosidade;
       }
 
       if (petFriendly !== undefined) {
         if (petFriendly !== "true" && petFriendly !== "false") {
-          return res.status(400).json({ error: "Filtro petFriendly inválido." });
+          return res.status(400).json({ message: "Filtro petFriendly inválido." });
         }
         filters.petFriendly = petFriendly === "true";
       }
 
       if (nome !== undefined) {
         if (typeof nome !== "string" || nome.trim() === "") {
-          return res.status(400).json({ error: "Filtro nome inválido." });
+          return res.status(400).json({ message: "Filtro nome inválido." });
         }
         filters.nome = nome.trim();
       }
 
       if (ordem !== undefined && ordem !== "preco" && ordem !== "nome") {
-        return res.status(400).json({ error: "Filtro ordem inválido. Use preco ou nome." });
+        return res.status(400).json({ message: "Filtro ordem inválido. Use preco ou nome." });
       }
 
       const plantas = await plantaRepository.findAll(filters, ordem);
       return res.status(200).json(plantas);
     } catch (error) {
-      return res.status(500).json({ error: "Erro interno no servidor." });
+      console.error(error);
+      return res.status(500).json({ message: "Erro interno no servidor." });
     }
   }
 
@@ -108,7 +110,8 @@ export class PlantaController {
       const plantas = await plantaRepository.findEsgotadas();
       return res.status(200).json(plantas);
     } catch (error) {
-      return res.status(500).json({ error: "Erro ao buscar plantas esgotadas" });
+      console.error(error);
+      return res.status(500).json({ message: "Erro ao buscar plantas esgotadas" });
     }
   }
 
@@ -117,17 +120,18 @@ export class PlantaController {
     try {
       const id = lerId(req.params.id);
       if (id === null) {
-        return res.status(400).json({ error: "ID inválido." });
+        return res.status(400).json({ message: "ID inválido." });
       }
 
       const planta = await plantaRepository.findById(id);
       if (!planta) {
-        return res.status(404).json({ error: "Planta não encontrada." });
+        return res.status(404).json({ message: "Planta não encontrada." });
       }
 
       return res.status(200).json(planta);
     } catch (error) {
-      return res.status(500).json({ error: "Erro interno no servidor." });
+      console.error(error);
+      return res.status(500).json({ message: "Erro interno no servidor." });
     }
   }
 
@@ -136,41 +140,41 @@ export class PlantaController {
     try {
       const id = lerId(req.params.id);
       if (id === null) {
-        return res.status(400).json({ error: "ID inválido." });
+        return res.status(400).json({ message: "ID inválido." });
       }
 
       const plantaExistente = await plantaRepository.findById(id);
       if (!plantaExistente) {
-        return res.status(404).json({ error: "Planta não encontrada." });
+        return res.status(404).json({ message: "Planta não encontrada." });
       }
 
       const { nome, especie, preco, estoque, luminosidade, petFriendly, regaACadaDias } = req.body;
 
       if (nome !== undefined && (typeof nome !== "string" || nome.trim() === "")) {
-        return res.status(400).json({ error: "Nome inválido." });
+        return res.status(400).json({ message: "Nome inválido." });
       }
       if (especie !== undefined && (typeof especie !== "string" || especie.trim() === "")) {
-        return res.status(400).json({ error: "Espécie inválida." });
+        return res.status(400).json({ message: "Espécie inválida." });
       }
       if (preco !== undefined && (!ehInteiro(preco, 1))) {
-        return res.status(400).json({ error: "Preço inválido." });
+        return res.status(400).json({ message: "Preço inválido." });
       }
       if (estoque !== undefined && (!ehInteiro(estoque, 0))) {
-        return res.status(400).json({ error: "Estoque inválido." });
+        return res.status(400).json({ message: "Estoque inválido." });
       }
       if (luminosidade !== undefined && !Object.values(Luminosidade).includes(luminosidade)) {
-        return res.status(400).json({ error: "Luminosidade inválida." });
+        return res.status(400).json({ message: "Luminosidade inválida." });
       }
       if (petFriendly !== undefined && typeof petFriendly !== "boolean") {
-        return res.status(400).json({ error: "petFriendly inválido." });
+        return res.status(400).json({ message: "petFriendly inválido." });
       }
       if (regaACadaDias !== undefined && (!ehInteiro(regaACadaDias, 1))) {
-        return res.status(400).json({ error: "regaACadaDias inválido." });
+        return res.status(400).json({ message: "regaACadaDias inválido." });
       }
 
       const camposEnviados = [nome, especie, preco, estoque, luminosidade, petFriendly, regaACadaDias];
       if (camposEnviados.every((campo) => campo === undefined)) {
-        return res.status(400).json({ error: "Envie ao menos um campo da planta para editar." });
+        return res.status(400).json({ message: "Envie ao menos um campo da planta para editar." });
       }
 
       const plantaAtualizada = await plantaRepository.update(id, {
@@ -185,7 +189,8 @@ export class PlantaController {
 
       return res.status(200).json(plantaAtualizada);
     } catch (error) {
-      return res.status(500).json({ error: "Erro interno no servidor." });
+      console.error(error);
+      return res.status(500).json({ message: "Erro interno no servidor." });
     }
   }
 
@@ -194,18 +199,19 @@ export class PlantaController {
     try {
       const id = lerId(req.params.id);
       if (id === null) {
-        return res.status(400).json({ error: "ID inválido." });
+        return res.status(400).json({ message: "ID inválido." });
       }
 
       const planta = await plantaRepository.findById(id);
       if (!planta) {
-        return res.status(404).json({ error: "Planta não encontrada." });
+        return res.status(404).json({ message: "Planta não encontrada." });
       }
 
       await plantaRepository.delete(id);
       return res.status(204).send();
     } catch (error) {
-      return res.status(500).json({ error: "Erro interno no servidor." });
+      console.error(error);
+      return res.status(500).json({ message: "Erro interno no servidor." });
     }
   }
 
@@ -216,32 +222,33 @@ export class PlantaController {
       const { quantidade } = req.body;
 
       if (id === null) {
-        return res.status(400).json({ error: "ID inválido." });
+        return res.status(400).json({ message: "ID inválido." });
       }
 
       if (!ehInteiro(quantidade, 1)) {
-        return res.status(400).json({ error: "Quantidade inválida para venda." });
+        return res.status(400).json({ message: "Quantidade inválida para venda." });
       }
 
       const planta = await plantaRepository.findById(id);
       if (!planta) {
-        return res.status(404).json({ error: "Planta não encontrada." });
+        return res.status(404).json({ message: "Planta não encontrada." });
       }
 
       if (planta.estoque < quantidade) {
-        return res.status(400).json({ error: `Estoque insuficiente. Temos só ${planta.estoque} vasos.` });
+        return res.status(400).json({ message: `Estoque insuficiente. Temos só ${planta.estoque} vasos.` });
       }
 
       const plantaAtualizada = await plantaRepository.vender(id, quantidade);
 
       // null: outra venda levou o estoque entre a nossa checagem e a baixa
       if (!plantaAtualizada) {
-        return res.status(400).json({ error: "Estoque insuficiente: outra venda foi concluída antes da sua. Tente de novo." });
+        return res.status(400).json({ message: "Estoque insuficiente: outra venda foi concluída antes da sua. Tente de novo." });
       }
 
       return res.status(200).json(plantaAtualizada);
     } catch (error) {
-      return res.status(500).json({ error: "Erro interno no servidor." });
+      console.error(error);
+      return res.status(500).json({ message: "Erro interno no servidor." });
     }
   }
 
@@ -264,7 +271,8 @@ export class PlantaController {
 
       return res.status(200).json(resultado);
     } catch (error) {
-      return res.status(500).json({ error: "Erro interno no servidor." });
+      console.error(error);
+      return res.status(500).json({ message: "Erro interno no servidor." });
     }
   }
 }
