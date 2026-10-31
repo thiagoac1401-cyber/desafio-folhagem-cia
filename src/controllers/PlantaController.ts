@@ -46,10 +46,10 @@ export class PlantaController {
     }
   }
 
-  // 2. Listar Plantas com Filtros Opcionais (GET /plantas)
+  // 2. Listar Plantas com Filtros Opcionais e Busca (GET /plantas)
   async findAll(req: Request, res: Response) {
     try {
-      const { luminosidade, petFriendly } = req.query;
+      const { luminosidade, petFriendly, nome, ordem } = req.query;
       const filters: any = {};
 
       if (luminosidade !== undefined) {
@@ -66,10 +66,24 @@ export class PlantaController {
         filters.petFriendly = petFriendly === "true";
       }
 
-      const plantas = await plantaRepository.findAll(filters);
+      if (nome !== undefined) {
+        filters.nome = nome as string;
+      }
+
+      const plantas = await plantaRepository.findAll(filters, ordem as string);
       return res.status(200).json(plantas);
     } catch (error) {
       return res.status(500).json({ error: "Erro interno no servidor." });
+    }
+  }
+
+  // 2.1 Buscar Plantas Esgotadas (GET /plantas/esgotadas) - BÔNUS
+  async findEsgotadas(req: Request, res: Response) {
+    try {
+      const plantas = await plantaRepository.findEsgotadas();
+      return res.status(200).json(plantas);
+    } catch (error) {
+      return res.status(500).json({ error: "Erro ao buscar plantas esgotadas" });
     }
   }
 
