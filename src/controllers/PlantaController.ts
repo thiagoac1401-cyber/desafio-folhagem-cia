@@ -4,6 +4,24 @@ import { Luminosidade } from "@prisma/client";
 
 const plantaRepository = new PlantaRepository();
 
+// Maior valor que cabe numa coluna Int do PostgreSQL. Acima disso o banco recusa o valor.
+const INT_MAX = 2147483647;
+
+const ehInteiro = (valor: unknown, minimo: number) => {
+  return Number.isInteger(valor) && (valor as number) >= minimo && (valor as number) <= INT_MAX;
+};
+
+// O id chega da URL como texto. A regex recusa "abc", "1.5", "-1", "1e3" e "0x10".
+const lerId = (texto: string) => {
+  if (!/^\d+$/.test(texto)) {
+    return null;
+  }
+
+  const id = Number(texto);
+
+  return ehInteiro(id, 1) ? id : null;
+};
+
 export class PlantaController {
   // 1. Cadastrar Planta (POST /plantas)
   async create(req: Request, res: Response) {
@@ -21,11 +39,11 @@ export class PlantaController {
       if (
         typeof nome !== "string" || nome.trim() === "" ||
         typeof especie !== "string" || especie.trim() === "" ||
-        !Number.isInteger(preco) || preco <= 0 ||
-        !Number.isInteger(estoque) || estoque < 0 ||
+        !ehInteiro(preco, 1) ||
+        !ehInteiro(estoque, 0) ||
         !Object.values(Luminosidade).includes(luminosidade) ||
         typeof petFriendly !== "boolean" ||
-        !Number.isInteger(regaACadaDias) || regaACadaDias < 1
+        !ehInteiro(regaACadaDias, 1)
       ) {
         return res.status(400).json({ error: "Dados inválidos informados." });
       }
@@ -90,8 +108,8 @@ export class PlantaController {
   // 3. Buscar Planta por ID (GET /plantas/:id)
   async findById(req: Request, res: Response) {
     try {
-      const id = Number(req.params.id);
-      if (!Number.isInteger(id) || id <= 0) {
+      const id = lerId(req.params.id);
+      if (id === null) {
         return res.status(400).json({ error: "ID inválido." });
       }
 
@@ -109,8 +127,8 @@ export class PlantaController {
   // 4. Editar Planta (PATCH /plantas/:id)
   async update(req: Request, res: Response) {
     try {
-      const id = Number(req.params.id);
-      if (!Number.isInteger(id) || id <= 0) {
+      const id = lerId(req.params.id);
+      if (id === null) {
         return res.status(400).json({ error: "ID inválido." });
       }
 
@@ -127,10 +145,10 @@ export class PlantaController {
       if (especie !== undefined && (typeof especie !== "string" || especie.trim() === "")) {
         return res.status(400).json({ error: "Espécie inválida." });
       }
-      if (preco !== undefined && (!Number.isInteger(preco) || preco <= 0)) {
+      if (preco !== undefined && (!ehInteiro(preco, 1))) {
         return res.status(400).json({ error: "Preço inválido." });
       }
-      if (estoque !== undefined && (!Number.isInteger(estoque) || estoque < 0)) {
+      if (estoque !== undefined && (!ehInteiro(estoque, 0))) {
         return res.status(400).json({ error: "Estoque inválido." });
       }
       if (luminosidade !== undefined && !Object.values(Luminosidade).includes(luminosidade)) {
@@ -139,7 +157,7 @@ export class PlantaController {
       if (petFriendly !== undefined && typeof petFriendly !== "boolean") {
         return res.status(400).json({ error: "petFriendly inválido." });
       }
-      if (regaACadaDias !== undefined && (!Number.isInteger(regaACadaDias) || regaACadaDias < 1)) {
+      if (regaACadaDias !== undefined && (!ehInteiro(regaACadaDias, 1))) {
         return res.status(400).json({ error: "regaACadaDias inválido." });
       }
 
@@ -162,8 +180,8 @@ export class PlantaController {
   // 5. Deletar Planta (DELETE /plantas/:id)
   async delete(req: Request, res: Response) {
     try {
-      const id = Number(req.params.id);
-      if (!Number.isInteger(id) || id <= 0) {
+      const id = lerId(req.params.id);
+      if (id === null) {
         return res.status(400).json({ error: "ID inválido." });
       }
 
@@ -182,14 +200,14 @@ export class PlantaController {
   // 6. Venda de Planta (POST /plantas/:id/venda)
   async vender(req: Request, res: Response) {
     try {
-      const id = Number(req.params.id);
+      const id = lerId(req.params.id);
       const { quantidade } = req.body;
 
-      if (!Number.isInteger(id) || id <= 0) {
+      if (id === null) {
         return res.status(400).json({ error: "ID inválido." });
       }
 
-      if (!Number.isInteger(quantidade) || quantidade <= 0) {
+      if (!ehInteiro(quantidade, 1)) {
         return res.status(400).json({ error: "Quantidade inválida para venda." });
       }
 
