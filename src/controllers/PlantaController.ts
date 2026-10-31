@@ -69,7 +69,7 @@ export class PlantaController {
   async findAll(req: Request, res: Response) {
     try {
       const { luminosidade, petFriendly, nome, ordem } = req.query;
-      const filters: any = {};
+      const filters: { luminosidade?: Luminosidade; petFriendly?: boolean; nome?: string } = {};
 
       if (luminosidade !== undefined) {
         if (!Object.values(Luminosidade).includes(luminosidade as Luminosidade)) {

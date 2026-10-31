@@ -6,7 +6,7 @@ const routes = express.Router();
 const plantaController = new PlantaController();
 
 routes.get("/", (req, res) => {
-  res.status(200).json({ message: "API do treinamento de CRUD do CITI 🚀" });
+  res.status(200).json({ message: "API do treinamento de CRUD do CITi 🚀" });
 });
 
 // CRUD de usuários
