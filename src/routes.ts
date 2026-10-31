@@ -23,6 +23,9 @@ routes.get("/plantas", (req, res) => plantaController.findAll(req, res));
 // Rota FIXA do Valor Total (deve vir OBRIGATORIAMENTE antes da rota com :id)
 routes.get("/plantas/estoque/valor-total", (req, res) => plantaController.valorTotalEstoque(req, res));
 
+// Rota FIXA de Plantas Esgotadas (BÔNUS) (deve vir OBRIGATORIAMENTE antes da rota com :id)
+routes.get("/plantas/esgotadas", (req, res) => plantaController.findEsgotadas(req, res));
+
 routes.get("/plantas/:id", (req, res) => plantaController.findById(req, res));
 routes.patch("/plantas/:id", (req, res) => plantaController.update(req, res));
 routes.delete("/plantas/:id", (req, res) => plantaController.delete(req, res));

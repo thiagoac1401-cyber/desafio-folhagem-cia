@@ -6,9 +6,41 @@ export class PlantaRepository {
     return await prisma.planta.create({ data });
   }
 
-  async findAll(filters?: { luminosidade?: Luminosidade; petFriendly?: boolean }) {
+  async findAll(filters?: { luminosidade?: Luminosidade; petFriendly?: boolean; nome?: string }, ordem?: string) {
+    // Constrói os filtros
+    const whereClause: Prisma.PlantaWhereInput = {
+      luminosidade: filters?.luminosidade,
+      petFriendly: filters?.petFriendly,
+    };
+
+    // Adiciona a busca por nome insensível a maiúsculas/minúsculas
+    if (filters?.nome) {
+      whereClause.nome = {
+        contains: filters.nome,
+        mode: 'insensitive', 
+      };
+    }
+
+    // Constrói a ordenação
+    let orderByClause: Prisma.PlantaOrderByWithRelationInput | undefined = undefined;
+    if (ordem === 'preco') {
+      orderByClause = { preco: 'asc' };
+    } else if (ordem === 'nome') {
+      orderByClause = { nome: 'asc' };
+    }
+
     return await prisma.planta.findMany({
-      where: filters,
+      where: whereClause,
+      orderBy: orderByClause,
+    });
+  }
+
+  // Nova função para as plantas esgotadas
+  async findEsgotadas() {
+    return await prisma.planta.findMany({
+      where: {
+        estoque: 0,
+      },
     });
   }
 
