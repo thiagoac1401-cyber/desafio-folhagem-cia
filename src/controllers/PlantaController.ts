@@ -202,7 +202,13 @@ export class PlantaController {
         return res.status(400).json({ error: `Estoque insuficiente. Temos só ${planta.estoque} vasos.` });
       }
 
-      const plantaAtualizada = await plantaRepository.diminuirEstoque(id, quantidade);
+      const plantaAtualizada = await plantaRepository.vender(id, quantidade);
+
+      // null: outra venda levou o estoque entre a nossa checagem e a baixa
+      if (!plantaAtualizada) {
+        return res.status(400).json({ error: "Estoque insuficiente: outra venda foi concluída antes da sua. Tente de novo." });
+      }
+
       return res.status(200).json(plantaAtualizada);
     } catch (error) {
       return res.status(500).json({ error: "Erro interno no servidor." });

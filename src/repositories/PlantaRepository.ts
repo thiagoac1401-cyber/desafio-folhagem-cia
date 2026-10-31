@@ -63,12 +63,21 @@ export class PlantaRepository {
     });
   }
 
-  async diminuirEstoque(id: number, quantidade: number) {
-    return await prisma.planta.update({
-      where: { id },
-      data: {
-        estoque: { decrement: quantidade },
-      },
+  // A checagem de estoque e a baixa acontecem no mesmo UPDATE (WHERE estoque >= quantidade).
+  // Assim, se duas vendas do último vaso chegarem juntas, o banco trava a linha e só uma passa.
+  // Devolve a planta atualizada ou null se o estoque não bastou.
+  async vender(id: number, quantidade: number) {
+    return await prisma.$transaction(async (tx) => {
+      const { count } = await tx.planta.updateMany({
+        where: { id, estoque: { gte: quantidade } },
+        data: { estoque: { decrement: quantidade } },
+      });
+
+      if (count === 0) {
+        return null;
+      }
+
+      return await tx.planta.findUnique({ where: { id } });
     });
   }
 
