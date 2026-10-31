@@ -6,7 +6,7 @@ export class PlantaRepository {
     return await prisma.planta.create({ data });
   }
 
-  async findAll(filters?: { luminosidade?: Luminosidade; petFriendly?: boolean; nome?: string }, ordem?: string) {
+  async findAll(filters?: { luminosidade?: Luminosidade; petFriendly?: boolean; nome?: string }, ordem?: "preco" | "nome") {
     // Constrói os filtros
     const whereClause: Prisma.PlantaWhereInput = {
       luminosidade: filters?.luminosidade,
@@ -21,12 +21,12 @@ export class PlantaRepository {
       };
     }
 
-    // Constrói a ordenação
-    let orderByClause: Prisma.PlantaOrderByWithRelationInput | undefined = undefined;
-    if (ordem === 'preco') {
-      orderByClause = { preco: 'asc' };
-    } else if (ordem === 'nome') {
-      orderByClause = { nome: 'asc' };
+    // Constrói a ordenação. O id no fim desempata e mantém a ordem estável.
+    let orderByClause: Prisma.PlantaOrderByWithRelationInput[] = [{ id: "asc" }];
+    if (ordem === "preco") {
+      orderByClause = [{ preco: "asc" }, { id: "asc" }];
+    } else if (ordem === "nome") {
+      orderByClause = [{ nome: "asc" }, { id: "asc" }];
     }
 
     return await prisma.planta.findMany({
@@ -41,6 +41,7 @@ export class PlantaRepository {
       where: {
         estoque: 0,
       },
+      orderBy: { id: "asc" },
     });
   }
 

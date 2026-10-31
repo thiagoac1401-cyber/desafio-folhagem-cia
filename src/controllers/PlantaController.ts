@@ -85,10 +85,17 @@ export class PlantaController {
       }
 
       if (nome !== undefined) {
-        filters.nome = nome as string;
+        if (typeof nome !== "string" || nome.trim() === "") {
+          return res.status(400).json({ error: "Filtro nome inválido." });
+        }
+        filters.nome = nome.trim();
       }
 
-      const plantas = await plantaRepository.findAll(filters, ordem as string);
+      if (ordem !== undefined && ordem !== "preco" && ordem !== "nome") {
+        return res.status(400).json({ error: "Filtro ordem inválido. Use preco ou nome." });
+      }
+
+      const plantas = await plantaRepository.findAll(filters, ordem);
       return res.status(200).json(plantas);
     } catch (error) {
       return res.status(500).json({ error: "Erro interno no servidor." });
